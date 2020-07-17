@@ -2,9 +2,12 @@ from json import loads
 from random import choice
 from itertools import repeat
 from time import time, sleep
-import pyinputplus as pyip
+import mingus.extra.lilypond as LilyPond
 import mingus.core.chords as chords
 import mingus.core.scales as scales
+from mingus.containers import Bar, Track
+from mingus.midi.midi_file_out import write_Track
+import pyinputplus as pyip
 
 complete_notes = ["C", "B#", "C#", "Db", "D", "D#", "Eb", "E", "Fb", "F", "E#","F#", "Gb", "G", "G#", "Ab", "A", "A#", "Bb", "B", "Cb"]
 
@@ -16,7 +19,7 @@ def generate_melodies():
     amount_of_notes = pyip.inputInt(prompt="How many notes do you want for this melody? ")
     scale = choice(scales_content["scales"])["scale"]
 
-    print(f"Generating melody with scale: {scale}\n")
+    print(f"Generating melody with scale: {scale} - {scales.determine(scale)}\n")
     for _ in repeat(None, amount_of_notes):
         print(f"\t{choice(scale)}")
         
@@ -25,12 +28,17 @@ def generate_melodies_with_chords():
     chords_each_x = pyip.inputInt(prompt="How many notes you want between chords? ")
     chord_in_note = [x for x in range(0, amount_of_notes, chords_each_x)]
     chosen_scale = choice(scales_content["scales"])
-
+    current_track = Track()
     print(f"Generating melody with scale: {chosen_scale['scale']}\n")
     for i in range(amount_of_notes):
         if i in chord_in_note:
-            print(f"\n\t{choice(chosen_scale['chords'])}\n")
-        print(f"\t{choice(chosen_scale['scale'])}")
+            chosen_chord = choice(chosen_scale['chords'])
+            current_track.from_chords(chosen_chord)
+            print(f"\n\t{chosen_chord}\n")
+        chosen_note = choice(chosen_scale['scale'])
+        current_track.add_notes(chosen_note)
+        print(f"\t{chosen_note}")
+    return current_track
         
 def note_practice():
     minutes_to_practice = pyip.inputInt(prompt="How many minutes do you want to practice? ")
@@ -76,7 +84,14 @@ def scale_practice():
         if (time() - start_time) >= minutes_to_practice * 60:
             break
 
+def generate_melody():
+    t = generate_melodies_with_chords()
+    track = LilyPond.from_Track(t)
+    print(t)
+    write_Track("test.mid", t)
+    LilyPond.to_pdf(track, "my_first_bar")
+
 def main():
-    scale_practice()
+    generate_melody()
 
 main()
