@@ -11,7 +11,7 @@ for i in range(len(notes) + 1):
 for i in range(len(notes) + 1):
     del all_scales[0]
 
-# all_scales = all_scales[:]
+all_scales = all_scales[:]
 
 scales_file.write("{\n")
 scales_file.write('''\t"scales":[\n''')

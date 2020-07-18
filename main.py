@@ -1,12 +1,13 @@
 from json import loads
-from random import choice
+from random import choice, uniform
 from itertools import repeat
 from time import time, sleep
 import mingus.extra.lilypond as LilyPond
 import mingus.core.chords as chords
 import mingus.core.scales as scales
-from mingus.containers import Bar, Track
+from mingus.containers import Bar, Track, Note
 from mingus.midi.midi_file_out import write_Track
+from midiutil import MIDIFile
 import pyinputplus as pyip
 
 complete_notes = ["C", "B#", "C#", "Db", "D", "D#", "Eb", "E", "Fb", "F", "E#","F#", "Gb", "G", "G#", "Ab", "A", "A#", "Bb", "B", "Cb"]
@@ -22,23 +23,38 @@ def generate_melodies():
     print(f"Generating melody with scale: {scale} - {scales.determine(scale)}\n")
     for _ in repeat(None, amount_of_notes):
         print(f"\t{choice(scale)}")
-        
+
 def generate_melodies_with_chords():
     amount_of_notes = pyip.inputInt(prompt="How many notes do you want for this melody? ")
     chords_each_x = pyip.inputInt(prompt="How many notes you want between chords? ")
     chord_in_note = [x for x in range(0, amount_of_notes, chords_each_x)]
     chosen_scale = choice(scales_content["scales"])
-    current_track = Track()
+    track = 0
+    channel  = 0
+    time     = 0
+    duration = 1
+    tempo    = 120
+    volume   = 100
+
+    midi_melody = MIDIFile(1)
+    midi_melody.addTempo(track, time, tempo)
+
     print(f"Generating melody with scale: {chosen_scale['scale']}\n")
     for i in range(amount_of_notes):
         if i in chord_in_note:
             chosen_chord = choice(chosen_scale['chords'])
-            current_track.from_chords(chosen_chord)
+            chosen_chord = chosen_chord[:4]
+            for note in chosen_chord:
+                note_midi_value = int(Note(note)) + 12
+                midi_melody.addNote(track, channel, note_midi_value, time, duration, volume)
             print(f"\n\t{chosen_chord}\n")
         chosen_note = choice(chosen_scale['scale'])
-        current_track.add_notes(chosen_note)
+        note_midi_value = int(Note(chosen_note)) + 12
+        midi_melody.addNote(track, channel, note_midi_value, time + duration, duration, volume)
+        time += duration
         print(f"\t{chosen_note}")
-    return current_track
+
+    return midi_melody
         
 def note_practice():
     minutes_to_practice = pyip.inputInt(prompt="How many minutes do you want to practice? ")
@@ -56,7 +72,7 @@ def chord_practice():
     start_time = time()
     while (True):
         chosen_chord = choice(choice(scales_content['scales'])['chords'])
-        determined_chord = chords.determine(chosen_chord)
+        determined_chord = chords.determine(chosen_chord, True)
         
         if determined_chord:
             print(f"\t{chosen_chord} - {determined_chord[0]}")
@@ -85,11 +101,14 @@ def scale_practice():
             break
 
 def generate_melody():
-    t = generate_melodies_with_chords()
-    track = LilyPond.from_Track(t)
-    print(t)
-    write_Track("test.mid", t)
-    LilyPond.to_pdf(track, "my_first_bar")
+    my_midi = generate_melodies_with_chords()
+    with open(f"my_midi.mid", "wb") as output_file:
+        my_midi.writeFile(output_file)
+
+    # track = LilyPond.from_Track(t)
+    # print(t)
+    # write_Track("test.mid", t)
+    # LilyPond.to_pdf(track, "my_first_bar")
 
 def main():
     generate_melody()
